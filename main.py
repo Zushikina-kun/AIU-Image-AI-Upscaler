@@ -115,11 +115,13 @@ MODEL_DESCRIPTIONS: dict[str, str] = {
     ),
     "realesr-general-x4v3": (
         "Tiny/fast general model (~5 MB). "
-        "Great for low-VRAM GPUs or when speed matters more than max quality."
+        "Note: NCNN conversion currently produces incorrect output for this model. "
+        "Use realesrgan-x4plus for general photos instead."
     ),
     "realesr-general-wdn-x4v3": (
         "General-x4v3 with a built-in wavelet denoising component. "
-        "Use when input images have heavy noise/grain."
+        "Note: NCNN conversion currently produces incorrect output for this model. "
+        "Use realesrgan-x4plus with Pre → NLM Denoise enabled instead."
     ),
     "4x-UltraSharp": (
         "Community favourite for AI-generated art and digital illustrations. "

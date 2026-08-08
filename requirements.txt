@@ -1,59 +1,61 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# AI Image Upscaler — runtime dependencies
-# Install with:  pip install -r requirements.txt
+# AI Image Upscaler — Python runtime dependencies
+# Install:  pip install -r requirements.txt
 #
-# Python 3.10+ recommended (3.10 confirmed working with the bundled venv310).
-# The realesrgan-ncnn-vulkan.exe binary handles GPU inference; PyTorch is only
-# needed if you also want to run the model converter (model converter.py).
+# Python 3.10+ required.
+# Tested on Python 3.14 (system) and 3.10 (venv310).
+#
+# NOTE FOR BUILDING THE EXE:
+#   Use a CLEAN venv with only these packages installed.
+#   Do NOT install torch/scipy/sympy/numba — they bloat the EXE from ~60MB to 200+MB.
+#   See README.md → Building from Source for exact steps.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Core GUI / image handling (always required) ───────────────────────────────
 Pillow>=10.3.0
 
-# ── Drag-and-drop support (optional but recommended on Windows) ───────────────
+# ── Drag-and-drop support ─────────────────────────────────────────────────────
 tkinterdnd2>=0.3.0
 
-# ── Pre-processing: OpenCV Non-Local Means denoising ─────────────────────────
-# Headless build — no GUI window needed (saves ~200 MB vs full opencv-python)
+# ── Pre-processing: OpenCV NLM denoising ─────────────────────────────────────
+# Headless build — no GUI window, ~80MB smaller than full opencv-python
 opencv-python-headless>=4.9.0
 
-# ── Background removal ────────────────────────────────────────────────────────
-# U2Net model (~170 MB) downloads automatically on first use
+# ── Background removal (rembg / U2Net) ───────────────────────────────────────
+# Downloads U2Net model (~170MB) on first background-removal use
+# Stored in ~/.u2net/ — not bundled in the EXE
 rembg[cpu]>=2.0.50
 
-# ── Subject detection + smart crop ───────────────────────────────────────────
-# YOLOv8n model (~6 MB) downloads automatically on first use
+# ── Subject detection + smart crop (YOLOv8n) ─────────────────────────────────
+# Downloads yolov8n.pt (~6MB) on first smart-crop use
 ultralytics>=8.0.0
 
 # ── EXIF metadata preservation ────────────────────────────────────────────────
 piexif>=1.1.3
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Model Converter dependencies  (only needed if you run "model converter.py")
+# Model Converter dependencies (only needed if you run "model converter.py")
+# NOT installed by default — install manually if you need PTH→NCNN conversion
 # ─────────────────────────────────────────────────────────────────────────────
 
-# PyTorch — install the correct variant for your hardware from https://pytorch.org
-# CPU-only (smallest download, works everywhere):
-#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
-# CUDA 12.1 (NVIDIA GPU):
-#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
-#
-# Uncomment ONE of the lines below if you want pip to handle it automatically,
-# but note the CPU wheel is ~200 MB and the CUDA wheel is ~2 GB.
-# torch>=2.1.0
-# torchvision>=0.16.0
+# PyTorch — choose the right build for your hardware:
+#   CPU only (works everywhere):
+#     pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+#   NVIDIA CUDA 12.1:
+#     pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 
-# Real-ESRGAN Python library (provides RealESRGANer + architecture definitions)
-realesrgan>=0.3.0
+# Real-ESRGAN Python library (RealESRGANer + architecture defs)
+# realesrgan>=0.3.0
 
-# BasicSR — super-resolution training/inference toolkit (provides RRDBNet arch)
-# Note: BasicSR is included as a git submodule in the BasicSR/ subfolder.
-# If you want to install from PyPI instead, uncomment the line below.
-# basicsr>=1.4.2
+# BasicSR — included as a git submodule (BasicSR/); no pip install needed
 
-# safetensors — needed to load .safetensors model weights
-safetensors>=0.4.3
+# safetensors — for .safetensors model weights
+# safetensors>=0.4.3
 
-# ONNX — intermediate format used during PTH → NCNN conversion pipeline
-onnx>=1.16.0
-onnxruntime>=1.18.0
+# ONNX — intermediate format for PTH → NCNN pipeline
+# onnx>=1.16.0
+# onnxruntime>=1.18.0
+
+# pnnx — modern PTH → NCNN converter (replaces onnx2ncnn)
+# Download binary from: https://github.com/pnnx/pnnx/releases
+# Place pnnx.exe in the project root or add to PATH
