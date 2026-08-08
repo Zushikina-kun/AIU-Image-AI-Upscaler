@@ -50,8 +50,17 @@ Desktop.ini
 input.jpg
 input2.jpg
 
-# ── BasicSR build artefacts ───────────────────────────────────────────────────
-BasicSR/.eggs/
-BasicSR/build/
-BasicSR/dist/
-BasicSR/*.egg-info/
+# ── Build venv (minimal runtime env — not for source control) ────────────────
+venv_build/
+
+# ── Conversion tools (downloaded binaries) ────────────────────────────────────
+pnnx.exe
+pnnx.zip
+pnnx_tools/
+ncnn_tools.zip
+ncnn_tools/
+
+# ── One-off helper scripts ────────────────────────────────────────────────────
+check_venv.py
+convert_general_models.py
+test_sharp.png

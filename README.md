@@ -3,7 +3,7 @@
 A Windows desktop app that upscales images using [Real-ESRGAN ncnn-Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) with a polished Tkinter GUI.  
 Works entirely **offline** — no cloud, no subscriptions, no GPU driver lock-in (AMD, NVIDIA, Intel all supported via Vulkan).
 
-![screenshot placeholder](assets/screenshot.png)
+![screenshot](assets/screenshot.png)
 
 ---
 
@@ -14,7 +14,8 @@ Works entirely **offline** — no cloud, no subscriptions, no GPU driver lock-in
 | **Upscaling** | 2×, 3×, 4× via any NCNN `.param/.bin` model — built-in and custom |
 | **2-Pass enhance** | Chain two models (e.g. x4plus → UltraSharp) for maximum detail |
 | **Pre-processing** | Auto-levels, JPEG artifact softening, NLM denoising (strength slider) |
-| **Post-processing** | Unsharp mask sharpening (on by default), contrast enhancement |
+| **Post-processing** | Unsharp mask sharpening with **presets** (Photo/Anime/Art/Strong/Custom), contrast enhancement |
+| **Sharpen-Only mode** | Re-sharpen already-upscaled files in the queue without re-running the binary |
 | **Background removal** | One-click via [rembg](https://github.com/danielgatis/rembg) / U2Net — saves a separate `_nobg.png` |
 | **Smart crop** | Auto-detects persons, animals, objects via YOLOv8n, crops & pads to subject before upscaling |
 | **Output formats** | PNG, JPEG (quality slider), WebP (quality slider) |
@@ -23,7 +24,7 @@ Works entirely **offline** — no cloud, no subscriptions, no GPU driver lock-in
 | **Batch queue** | Drag-and-drop, add folders (recursive), reorder, multi-select remove |
 | **Before/After preview** | Side-by-side canvases that resize with the window, with resolution info |
 | **Live log** | Colour-coded subprocess output per image |
-| **Model reference** | Scrollable panel describing every included model and what it's for |
+| **Help & Model Guide** | Full built-in user guide, model reference, and About dialog (Help menu) |
 | **Settings persistence** | All settings saved to `settings.json` on close |
 | **Dark / Light theme** | Toggle in the Advanced tab |
 | **Cancel** | Immediately kills the running subprocess |
@@ -70,6 +71,8 @@ The `models/` folder ships with pre-converted `.param/.bin` pairs ready for infe
 | `realesr-animevideov3-x2/x3/x4` | 2/3/4× | Video frames — low temporal flicker |
 | `4x-UltraSharp-fp16` | 4× | AI-generated art, crisp edges (fp16 weights) |
 | `4x-UltraSharp-fp32` | 4× | Same as above but FP32 — better on older AMD GPUs |
+| `realesr-general-x4v3` | 4× | Tiny/fast (~2.4 MB). Low-VRAM GPUs or speed-priority |
+| `realesr-general-wdn-x4v3` | 4× | Same tiny model with built-in wavelet denoising |
 
 ---
 
@@ -129,13 +132,14 @@ To convert a `.pth` PyTorch checkpoint to NCNN format, see [model converter.py](
 
 ### Post-processing (applied after upscaling)
 
-| Option | What it does | Default |
+| Option | Presets | Default |
 |---|---|---|
-| **Sharpen** | Pillow `UnsharpMask` — radius, percent, threshold sliders | **On** (r=1.5, 120%, t=3) |
+| **Sharpen** | Photo (r=1.5,130%,t=3) · Anime (r=1.0,150%,t=2) · Art (r=2.0,160%,t=2) · Strong (r=2.0,200%,t=1) · Custom | **On** (Photo preset) |
+| **Sharpen-Only** | Button to re-sharpen queued images without re-upscaling | — |
 | **Contrast enhance** | `ImageEnhance.Contrast` — 1.0 = no change | Off |
 
 > **Why is sharpening on by default?**  
-> ESRGAN models are trained to avoid over-sharpening artifacts, which makes their output look slightly soft compared to the input when viewed at 1:1. A mild unsharp mask post-pass restores the perceived crispness without ringing.
+> ESRGAN models are trained to avoid over-sharpening artifacts, which makes their output look slightly soft. A mild unsharp mask post-pass restores the perceived crispness. Use the **Sharpen-Only** button to re-process existing upscaled images.
 
 ---
 

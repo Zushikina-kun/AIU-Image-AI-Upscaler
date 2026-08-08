@@ -676,10 +676,15 @@ class UpscalerApp:
 
         hm = tk.Menu(mb, tearoff=0, bg=c["panel"], fg=c["fg"],
                      activebackground=c["accent"], activeforeground="#fff")
+        hm.add_command(label="Help — User Guide",        command=self.show_help)
+        hm.add_command(label="Model Reference",          command=self.show_model_guide)
+        hm.add_separator()
         hm.add_command(label="Real-ESRGAN GitHub",
                        command=lambda: webbrowser.open("https://github.com/xinntao/Real-ESRGAN"))
         hm.add_command(label="Model Browser (OpenModelDB)",
                        command=lambda: webbrowser.open("https://openmodeldb.info"))
+        hm.add_separator()
+        hm.add_command(label="About",                    command=self.show_about)
         mb.add_cascade(label="Help", menu=hm)
         self.root.config(menu=mb)
 
@@ -1620,6 +1625,319 @@ class UpscalerApp:
                 self._proc.terminate()
             except Exception:
                 pass
+
+    # ═══════════════════════════════════════════════════════════════════
+    # HELP / ABOUT DIALOGS
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _make_text_dialog(self, title: str, width: int = 80, height: int = 36) -> tuple:
+        """Create a reusable scrollable text dialog. Returns (win, text_widget)."""
+        c   = self.colors
+        win = tk.Toplevel(self.root)
+        win.title(title)
+        win.configure(bg=c["bg"])
+        win.resizable(True, True)
+        win.geometry(f"{width * 8}x{height * 18}")
+        win.transient(self.root)
+        win.grab_set()
+
+        # Close on Escape
+        win.bind("<Escape>", lambda _: win.destroy())
+
+        frame = ttk.Frame(win)
+        frame.pack(fill="both", expand=True, padx=8, pady=6)
+
+        vsb = ttk.Scrollbar(frame, orient="vertical")
+        hsb = ttk.Scrollbar(frame, orient="horizontal")
+        txt = tk.Text(
+            frame, wrap="word",
+            bg=c["entry"], fg=c["fg"], insertbackground=c["fg"],
+            bd=0, highlightthickness=0, font=("Segoe UI", 9),
+            yscrollcommand=vsb.set, xscrollcommand=hsb.set,
+            state="normal", relief="flat",
+        )
+        vsb.config(command=txt.yview)
+        hsb.config(command=txt.xview)
+        vsb.pack(side="right", fill="y")
+        hsb.pack(side="bottom", fill="x")
+        txt.pack(fill="both", expand=True)
+
+        # Text tags
+        txt.tag_configure("h1",   font=("Segoe UI", 12, "bold"), foreground=c["accent"],
+                          spacing1=8, spacing3=4)
+        txt.tag_configure("h2",   font=("Segoe UI", 10, "bold"), foreground=c["accent"],
+                          spacing1=6, spacing3=2)
+        txt.tag_configure("h3",   font=("Segoe UI", 9,  "bold"), foreground=c["success"],
+                          spacing1=4, spacing3=1)
+        txt.tag_configure("body", font=("Segoe UI", 9),          foreground=c["fg"])
+        txt.tag_configure("code", font=("Consolas", 8),          foreground=c["warn"],
+                          background=c["panel"])
+        txt.tag_configure("tip",  font=("Segoe UI", 9, "italic"), foreground=c["border"])
+        txt.tag_configure("warn", font=("Segoe UI", 9),           foreground=c["warn"])
+        txt.tag_configure("ok",   font=("Segoe UI", 9),           foreground=c["success"])
+
+        # Close button
+        ttk.Button(win, text="Close", command=win.destroy).pack(pady=(0, 6))
+
+        return win, txt
+
+    def _finish_text(self, txt: tk.Text):
+        txt.config(state="disabled")
+        txt.see("1.0")
+
+    # ── Help window ───────────────────────────────────────────────────
+    def show_help(self):
+        win, txt = self._make_text_dialog("User Guide — AI Image Upscaler", 90, 42)
+
+        def w(text, tag="body"):
+            txt.insert("end", text, tag)
+
+        w("AI Image Upscaler — User Guide\n", "h1")
+
+        w("QUICK START\n", "h2")
+        w("1. Click  + Images  or  + Folder  (or drag images onto the queue).\n")
+        w("2. Choose a model in the Model tab.  Not sure? Leave it on  realesrgan-x4plus.\n")
+        w("3. Click  ▶ Start.  The upscaled file saves to the Output folder.\n")
+        w("4. If the result looks soft, try the  ✦ Sharpen Only  button to boost crispness.\n\n")
+
+        w("TABS EXPLAINED\n", "h2")
+
+        w("Model tab\n", "h3")
+        w("  Model         — the NCNN upscaling model to use.  Press ℹ for a description.\n")
+        w("  Scale         — 2× / 3× / 4×. Disabled for models with a fixed scale.\n")
+        w("  TTA mode      — Test-Time Augmentation. 8× slower, marginally sharper edges.\n")
+        w("  2-Pass        — Runs a second model on top of the first. Adds detail but doubles time.\n\n")
+
+        w("Pre/Post tab\n", "h3")
+        w("  Pre-processing  (applied BEFORE the binary runs)\n", "tip")
+        w("  Auto-levels      — Normalises contrast. Good for washed-out or dark inputs.\n")
+        w("  JPEG artifact    — Softens block artefacts before upscaling. Use on heavy JPEGs.\n")
+        w("  NLM Denoise      — Non-Local Means denoising. h=1 light, h=10 medium, h=20 heavy.\n")
+        w("                     Requires opencv (pip install opencv-python-headless).\n\n")
+        w("  Post-processing  (applied AFTER the binary runs)\n", "tip")
+        w("  Sharpen          — Unsharp mask. ON by default. Corrects ESRGAN's intentional softness.\n")
+        w("    Presets:\n")
+        w("      Photo   r=1.5 pct=130 t=3  — natural photos, avoids ringing\n", "code")
+        w("      Anime   r=1.0 pct=150 t=2  — sharper edges for flat colour art\n", "code")
+        w("      Art     r=2.0 pct=160 t=2  — AI-generated / illustrations\n", "code")
+        w("      Strong  r=2.0 pct=200 t=1  — maximum, for very soft outputs\n", "code")
+        w("      Custom               — set radius / percent / threshold manually\n", "code")
+        w("\n")
+        w("  ✦ Sharpen Only  — Re-sharpen already-upscaled files in the queue without\n")
+        w("                    re-running the binary.  The sharpened copy saves next to the original.\n\n")
+        w("  Contrast        — Multiplies contrast.  1.0 = no change.  1.05–1.10 is subtle.\n\n")
+
+        w("Tools tab\n", "h3")
+        w("  Background Removal — Uses rembg / U2Net AI. First use downloads ~170 MB model.\n")
+        w("                       Saves a separate  _nobg.png  with transparent background.\n")
+        w("                       Requires:  pip install \"rembg[cpu]\"\n\n")
+        w("  Smart Crop       — Uses YOLOv8n to detect the main subject (person, animal, object)\n")
+        w("                     and crops tightly before upscaling. Great for portraits and pets.\n")
+        w("                     First use downloads ~6 MB model automatically.\n")
+        w("                     Requires:  pip install ultralytics\n")
+        w("  Detect classes   — Comma-separated COCO class names, e.g.  person,cat,dog,car\n")
+        w("  Pad to square    — Pads the crop to equal width/height before upscaling.\n\n")
+        w("  Preserve EXIF    — Copies Exif metadata (camera, GPS, date) to JPEG outputs.\n\n")
+
+        w("Output tab\n", "h3")
+        w("  Save to          — Where upscaled files are written. Click … to browse.\n")
+        w("  Format           — PNG (lossless), JPEG (quality slider), WebP (quality slider).\n")
+        w("  Filename         — Template for output names.  Variables:\n")
+        w("    {stem}  original filename without extension\n", "code")
+        w("    {model} model name used\n", "code")
+        w("    {scale} scale factor (2/3/4)\n", "code")
+        w("    {ext}   output extension\n", "code")
+        w("    Example:  {stem}_{model}_{scale}x  →  photo_realesrgan-x4plus_4x.png\n\n", "code")
+
+        w("Advanced tab\n", "h3")
+        w("  GPU ID      — 0 = first GPU, 1 = second, -1 = CPU (very slow).\n")
+        w("  Tile size   — 0 = auto. Lower values (128, 64) reduce VRAM usage.\n")
+        w("                AMD RX 580 and other older GPUs: use 32 for sharpest output.\n")
+        w("  Threads     — load:proc:save.  2:2:2 is a good default.\n")
+        w("  Dark theme  — Toggle here or in the Advanced tab.\n\n")
+
+        w("TIPS\n", "h2")
+        w("  • For JPEG inputs: enable Pre → JPEG artifact softening for cleaner results.\n", "ok")
+        w("  • For anime: use  realesrgan-x4plus-anime  and set sharpen preset to Anime.\n", "ok")
+        w("  • For AI art: use  4x-UltraSharp-fp32  and sharpen preset Art.\n", "ok")
+        w("  • AMD RX 580 users: prefer fp32 model variants — fp16 can cause soft output.\n", "warn")
+        w("  • Very large images: set Tile size to 128 or 64 to avoid VRAM errors.\n", "warn")
+        w("  • Drag and drop: drop images or folders directly onto the queue list.\n", "ok")
+        w("  • Double-click or press Delete to remove items from the queue.\n", "ok")
+
+        self._finish_text(txt)
+
+    # ── Model Guide ───────────────────────────────────────────────────
+    def show_model_guide(self):
+        win, txt = self._make_text_dialog("Model Reference — AI Image Upscaler", 90, 44)
+
+        def w(text, tag="body"):
+            txt.insert("end", text, tag)
+
+        w("Model Reference\n", "h1")
+        w("All models below use the RRDB (Residual in Residual Dense Block) architecture\n")
+        w("unless noted otherwise.  Only  .param + .bin  pairs in your models/ folder\n")
+        w("are usable — .pth and .safetensors weights need conversion first (see below).\n\n")
+
+        # Build a table from MODEL_DESCRIPTIONS + metadata
+        sections = [
+            ("GENERAL PHOTOS", [
+                ("realesrgan-x4plus",       "4×", "★ Best all-rounder for real photos. 23 RRDB blocks, ~64 MB.\n"
+                 "  Handles JPEG compression, blur, noise. Use this when unsure."),
+                ("realesrnet-x4plus",        "4×", "Lighter than x4plus. Less texture hallucination,\n"
+                 "  good when you want mild sharpening without invented detail."),
+                ("realesr-general-x4v3",     "4×", "Tiny fast model (~5 MB). Low-VRAM GPUs or speed-priority."),
+                ("realesr-general-wdn-x4v3", "4×", "Same tiny model with built-in wavelet denoising.\n"
+                 "  Best for noisy or grainy photo inputs."),
+                ("RealESRGAN_x2plus",        "2×", "Official 2× general model. Same quality as x4plus at half scale."),
+            ]),
+            ("ANIME / ILLUSTRATION / LINE ART", [
+                ("realesrgan-x4plus-anime",    "4×", "★ Official 6-block anime model (~18 MB). Faster, smaller.\n"
+                 "  Avoids sharpening smooth gradients that trip up the x4plus model."),
+                ("4x-AnimeSharp",              "4×", "Sharper edges than x4plus-anime. More detail invention."),
+                ("4x_NMKD-UltraYandere_300k",  "4×", "Community anime model. Strong for stylised art and manga."),
+                ("4x_NMKD-YandereNeoXL_200k",  "4×", "Newer NMKD with improved edge handling on line art."),
+                ("4x_BooruGan_650k",           "4×", "Trained on Danbooru art. Great for anime fan art and hair detail."),
+                ("2x-AnimeSharpV3",            "2×", "2× anime upscaler. Good for moderate scale without over-processing."),
+                ("2x_AniScale2_ESRGAN_i16_110K","2×","Smooth gradients, reasonable edge sharpness."),
+            ]),
+            ("AI-GENERATED ART / DIGITAL ILLUSTRATIONS", [
+                ("4x-UltraSharp-fp32",  "4×", "★ Best for AI art on AMD GPUs. FP32 weights.\n"
+                 "  Crisp edges, high contrast. Avoids fp16 accumulation issues on RX 580 etc."),
+                ("4x-UltraSharp-fp16",  "4×", "Same model, FP16 weights. Preferred on NVIDIA RTX cards.\n"
+                 "  Smaller memory footprint, virtually identical quality."),
+                ("4x-UltraSharp",       "4×", "Original UltraSharp PTH weights (not NCNN-ready until converted)."),
+                ("4x-UltraSharpV2",     "4×", "V2 — better texture fidelity, less ringing. Needs conversion."),
+            ]),
+            ("VIDEO FRAMES", [
+                ("realesr-animevideov3-x2", "2×", "★ Anime video at 2×. Tuned for temporal consistency — low flicker."),
+                ("realesr-animevideov3-x3", "3×", "Same temporal tuning, 3× scale."),
+                ("realesr-animevideov3-x4", "4×", "Most common animevideov3 variant for HD upscaling."),
+            ]),
+            ("RESTORATION WITHOUT UPSCALING", [
+                ("1x-UnResizeOnly_RCAN", "1×", "RCAN architecture. Cleans JPEG artefacts without changing resolution.\n"
+                 "  Use as a pre-pass before another model."),
+            ]),
+        ]
+
+        for section_title, models in sections:
+            w(f"\n{section_title}\n", "h2")
+            for name, scale, desc in models:
+                # Check if NCNN pair exists
+                param_ok = (MODELS_DIR / f"{name}.param").exists()
+                bin_ok   = (MODELS_DIR / f"{name}.bin").exists()
+                if param_ok and bin_ok:
+                    status = "✓ NCNN ready"
+                    stag   = "ok"
+                elif (MODELS_DIR / f"{name}.pth").exists() or (MODELS_DIR / f"{name}.safetensors").exists():
+                    status = "⚠ PTH only — needs conversion"
+                    stag   = "warn"
+                else:
+                    status = "✗ not in models/"
+                    stag   = "warn"
+
+                w(f"  {name}", "h3")
+                w(f"  ({scale})  ")
+                w(f"[{status}]\n", stag)
+                for line in desc.split("\n"):
+                    w(f"    {line}\n", "body")
+
+        w("\nCONVERTING PTH → NCNN\n", "h2")
+        w("  If a model shows '⚠ PTH only', run the included converter:\n\n")
+        w('  python "model converter.py"\n', "code")
+        w("\n  Requirements: torch, realesrgan, safetensors, onnx, pnnx or onnx2ncnn\n")
+        w("  See requirements.txt for full instructions.\n\n")
+
+        w("ADDING NEW MODELS\n", "h2")
+        w("  1. Download a .param + .bin pair from OpenModelDB (openmodeldb.info)\n")
+        w("     or convert a .pth file using the model converter.\n")
+        w("  2. Drop both files into the  models/  folder next to the app.\n")
+        w("  3. Click  Tools → Refresh Model List  in the app.\n")
+
+        self._finish_text(txt)
+
+    # ── About dialog ──────────────────────────────────────────────────
+    def show_about(self):
+        c   = self.colors
+        win = tk.Toplevel(self.root)
+        win.title("About — AI Image Upscaler")
+        win.configure(bg=c["bg"])
+        win.resizable(False, False)
+        win.geometry("480x520")
+        win.transient(self.root)
+        win.grab_set()
+        win.bind("<Escape>", lambda _: win.destroy())
+
+        # Try to show the icon as a large image
+        try:
+            icon_src = APP_DIR / "assets" / "icon_512.png"
+            if not icon_src.exists():
+                icon_src = APP_DIR / "icon.ico"
+            if icon_src.exists() and PIL_AVAILABLE:
+                with Image.open(str(icon_src)) as im:
+                    im.thumbnail((80, 80), Image.LANCZOS)
+                    photo = ImageTk.PhotoImage(im)
+                lbl_ico = tk.Label(win, image=photo, bg=c["bg"])
+                lbl_ico.image = photo
+                lbl_ico.pack(pady=(18, 4))
+        except Exception:
+            pass
+
+        tk.Label(win, text="AI Image Upscaler",
+                 font=("Segoe UI", 16, "bold"),
+                 fg=c["accent"], bg=c["bg"]).pack()
+        tk.Label(win, text="Version 1.0.1",
+                 font=("Segoe UI", 9),
+                 fg=c["border"], bg=c["bg"]).pack()
+        tk.Label(win, text="A desktop GUI for Real-ESRGAN ncnn-Vulkan",
+                 font=("Segoe UI", 9),
+                 fg=c["fg"], bg=c["bg"]).pack(pady=(4, 0))
+        tk.Label(win, text="Runs fully offline  ·  AMD, NVIDIA, Intel GPU via Vulkan",
+                 font=("Segoe UI", 9),
+                 fg=c["border"], bg=c["bg"]).pack()
+
+        ttk.Separator(win, orient="horizontal").pack(fill="x", padx=24, pady=12)
+
+        credits_frame = ttk.Frame(win)
+        credits_frame.pack(padx=24)
+
+        credits = [
+            ("Upscaling engine", "Real-ESRGAN ncnn-Vulkan",
+             "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan"),
+            ("AI model research",  "Real-ESRGAN (Xintao Wang et al.)",
+             "https://github.com/xinntao/Real-ESRGAN"),
+            ("UltraSharp models",  "Kim2091 (Hugging Face)",
+             "https://huggingface.co/Kim2091/UltraSharp"),
+            ("Background removal", "rembg (Daniel Gatis)",
+             "https://github.com/danielgatis/rembg"),
+            ("Object detection",   "Ultralytics YOLOv8",
+             "https://github.com/ultralytics/ultralytics"),
+            ("Drag-and-drop",      "tkinterdnd2",
+             "https://github.com/pmgagne/tkinterdnd2"),
+            ("Model repository",   "OpenModelDB",
+             "https://openmodeldb.info"),
+        ]
+
+        for label, name, url in credits:
+            row = ttk.Frame(credits_frame)
+            row.pack(fill="x", pady=1)
+            tk.Label(row, text=f"{label}:", width=20, anchor="e",
+                     font=("Segoe UI", 8), fg=c["border"], bg=c["bg"]).pack(side="left")
+            btn = tk.Label(row, text=name, anchor="w",
+                           font=("Segoe UI", 8, "underline"),
+                           fg=c["accent"], bg=c["bg"], cursor="hand2")
+            btn.pack(side="left", padx=6)
+            btn.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
+
+        ttk.Separator(win, orient="horizontal").pack(fill="x", padx=24, pady=12)
+
+        tk.Label(win, text="MIT License  ·  https://github.com/Zushikina-kun/AIU-Image-AI-Upscaler",
+                 font=("Segoe UI", 8),
+                 fg=c["border"], bg=c["bg"], cursor="hand2").pack()
+        tk.Label(win, text="",
+                 bg=c["bg"]).pack(pady=2)
+
+        ttk.Button(win, text="Close", command=win.destroy).pack(pady=8)
 
     # ═══════════════════════════════════════════════════════════════════
     # SETTINGS PERSISTENCE
