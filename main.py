@@ -64,8 +64,10 @@ import sys as _sys
 SUPPORTED_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tiff", ".tif")
 OUTPUT_FORMATS = ("png", "jpg", "webp")
 
-# When frozen by PyInstaller (one-file), __file__ is inside a temp _MEIPASS dir.
-# The actual EXE/script lives at sys.executable's folder instead.
+# When frozen by PyInstaller (onedir), sys.executable is inside
+# dist\AI Image Upscaler\ — which is exactly where we place models\ and
+# realesrgan-ncnn-vulkan.exe.  When running from source, __file__ gives
+# the project root.  Either way APP_DIR is the right base.
 def _app_dir() -> Path:
     if getattr(_sys, "frozen", False):
         return Path(_sys.executable).parent
@@ -300,15 +302,28 @@ def scan_models() -> list[str]:
 
 
 def load_settings() -> dict:
+    merged = dict(DEFAULT_SETTINGS)
     if CONFIG_FILE.exists():
         try:
             saved = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-            merged = dict(DEFAULT_SETTINGS)
             merged.update(saved)
-            return merged
         except Exception:
             pass
-    return dict(DEFAULT_SETTINGS)
+
+    # ── Sanity-check output_dir ───────────────────────────────────────────────
+    # If the saved output_dir is inside a path that no longer exists (e.g. an
+    # old project root from a dev build that's now a frozen EXE), reset it to
+    # the default so the user doesn't get silent write failures.
+    out = Path(merged["output_dir"])
+    try:
+        # Accept if the dir exists OR if its parent exists (can be created).
+        # Reject only if neither half makes sense on this system.
+        if not out.exists() and not out.parent.exists():
+            merged["output_dir"] = DEFAULT_SETTINGS["output_dir"]
+    except Exception:
+        merged["output_dir"] = DEFAULT_SETTINGS["output_dir"]
+
+    return merged
 
 
 def save_settings(cfg: dict) -> None:
@@ -637,6 +652,10 @@ class UpscalerApp:
         self._poll_ui_queue()
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         self.var_dark.trace_add("write", lambda *_: self._toggle_theme())
+
+        # Warn on startup if the inference binary is missing — do it after
+        # the UI is built so the message appears over the window.
+        self.root.after(200, self._check_binary)
 
     # ═══════════════════════════════════════════════════════════════════
     # UI BUILD
@@ -1088,6 +1107,27 @@ class UpscalerApp:
         self.model_box["values"]  = m
         self.model2_box["values"] = m
         self._log(f"Found {len(m)} model(s).", "info")
+
+    def _check_binary(self):
+        """Called 200 ms after startup. Warns if the inference binary is missing."""
+        binary = APP_DIR / EXE_NAME
+        if not binary.exists():
+            missing = str(binary)
+            msg = (
+                f"Inference binary not found:\n{missing}\n\n"
+                f"The file  realesrgan-ncnn-vulkan.exe  must be in the same\n"
+                f"folder as this application.\n\n"
+                f"If you are running the portable EXE, make sure you placed it\n"
+                f"alongside the models/ folder from the repository."
+            )
+            messagebox.showerror("Missing Binary", msg)
+        if not MODELS_DIR.exists() or not any(MODELS_DIR.glob("*.param")):
+            msg = (
+                f"No NCNN models found in:\n{MODELS_DIR}\n\n"
+                f"The models/ folder must be in the same folder as the EXE.\n"
+                f"Download the full release or clone the repository."
+            )
+            messagebox.showwarning("No Models Found", msg)
 
     def _clear_log(self):
         self.log_text.config(state="normal")
