@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Image Upscaler — runtime dependencies
+# Install with:  pip install -r requirements.txt
+#
+# Python 3.10+ recommended (3.10 confirmed working with the bundled venv310).
+# The realesrgan-ncnn-vulkan.exe binary handles GPU inference; PyTorch is only
+# needed if you also want to run the model converter (model converter.py).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Core GUI / image handling (always required) ───────────────────────────────
+Pillow>=10.3.0
+
+# ── Drag-and-drop support (optional but recommended on Windows) ───────────────
+tkinterdnd2>=0.3.0
+
+# ── Pre-processing: OpenCV Non-Local Means denoising ─────────────────────────
+# Headless build — no GUI window needed (saves ~200 MB vs full opencv-python)
+opencv-python-headless>=4.9.0
+
+# ── Background removal ────────────────────────────────────────────────────────
+# U2Net model (~170 MB) downloads automatically on first use
+rembg[cpu]>=2.0.50
+
+# ── Subject detection + smart crop ───────────────────────────────────────────
+# YOLOv8n model (~6 MB) downloads automatically on first use
+ultralytics>=8.0.0
+
+# ── EXIF metadata preservation ────────────────────────────────────────────────
+piexif>=1.1.3
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Model Converter dependencies  (only needed if you run "model converter.py")
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PyTorch — install the correct variant for your hardware from https://pytorch.org
+# CPU-only (smallest download, works everywhere):
+#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+# CUDA 12.1 (NVIDIA GPU):
+#   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
+#
+# Uncomment ONE of the lines below if you want pip to handle it automatically,
+# but note the CPU wheel is ~200 MB and the CUDA wheel is ~2 GB.
+# torch>=2.1.0
+# torchvision>=0.16.0
+
+# Real-ESRGAN Python library (provides RealESRGANer + architecture definitions)
+realesrgan>=0.3.0
+
+# BasicSR — super-resolution training/inference toolkit (provides RRDBNet arch)
+# Note: BasicSR is included as a git submodule in the BasicSR/ subfolder.
+# If you want to install from PyPI instead, uncomment the line below.
+# basicsr>=1.4.2
+
+# safetensors — needed to load .safetensors model weights
+safetensors>=0.4.3
+
+# ONNX — intermediate format used during PTH → NCNN conversion pipeline
+onnx>=1.16.0
+onnxruntime>=1.18.0

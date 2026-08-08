@@ -1,0 +1,57 @@
+# ── Python environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+venv310/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Large model weights (tracked via Git LFS or downloaded manually) ──────────
+models/*.pth
+models/*.safetensors
+
+# ── Downloaded / extracted binaries ──────────────────────────────────────────
+realesrgan_v020.zip
+realesrgan_v020_extracted/
+*.bak_v010
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+main.exe
+dist/
+build/
+
+# ── Output images (user-generated) ───────────────────────────────────────────
+output/
+
+# ── Temporary pre-processing files ───────────────────────────────────────────
+*_pre_*.png
+*_crop_*.png
+
+# ── User settings (machine-specific) ─────────────────────────────────────────
+settings.json
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ── Test inputs ───────────────────────────────────────────────────────────────
+input.jpg
+input2.jpg
+
+# ── BasicSR build artefacts ───────────────────────────────────────────────────
+BasicSR/.eggs/
+BasicSR/build/
+BasicSR/dist/
+BasicSR/*.egg-info/
